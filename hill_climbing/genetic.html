@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Genetic Hill Climbing</title>
+
+    <script>
+    var NUM_ENTITIES = 50;
+    var SURVIVAL = 0.8;
+    var MUTATION = 30;
+    var DELAY = 200;
+    var entities = [];
+
+    function init() {
+      // TODO: try with centered random init.
+      for (var i = 0; i < NUM_ENTITIES; ++i) {
+        var x = 100 + gaussian()*50;
+        var y = 100 + gaussian()*50;
+        entities.push(createEntity(x, y));
+      }
+      setTimeout(showWorst, DELAY);
+    }
+
+    function showWorst() {
+      entities.sort(function(x, y) {
+        return fitness(y) - fitness(x);
+      });
+      var numKeep = Math.round(NUM_ENTITIES * SURVIVAL);
+      for (var i = numKeep; i < entities.length; ++i) {
+        entities[i].elem.setAttribute('class', 'non-survivor');
+      }
+      setTimeout(pruneWorst, DELAY);
+    }
+
+    function pruneWorst() {
+      for (var i = 0; i < entities.length; ++i) {
+        var ent = entities[i];
+        if (ent.elem.getAttribute('class') === 'survivor') {
+          continue
+        }
+        entities.splice(i, 1);
+        --i;
+        ent.elem.parentNode.removeChild(ent.elem);
+      }
+      setTimeout(reproduce, DELAY);
+    }
+
+    function reproduce() {
+      var startLen = entities.length;
+      while (entities.length < NUM_ENTITIES) {
+        var select = function() {
+          var idx = Math.floor(Math.random() * startLen);
+          return entities[idx];
+        };
+        var parent1 = select();
+        var parent2 = select();
+        entities.push(createEntity(mutate(parent1.x), mutate(parent2.y)));
+      }
+      setTimeout(showWorst, DELAY);
+    }
+
+    function fitness(entity) {
+      var dist = Math.pow(entity.x-250, 2) + Math.pow(entity.y-250, 2);
+
+      // In this case, fitness will always be negative.
+      // This is fine for truncation selection.
+      return -dist;
+    }
+
+    function mutate(x) {
+      return x + gaussian()*MUTATION;
+    }
+
+    function createEntity(x, y) {
+      var elem = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      elem.setAttribute('cx', x);
+      elem.setAttribute('cy', y);
+      elem.setAttribute('r', 5);
+      elem.setAttribute('class', 'survivor');
+
+      var entity = {x: x, y: y, elem: elem};
+
+      var parent = document.getElementById('entity-views');
+      parent.appendChild(entity.elem);
+
+      return entity;
+    }
+
+    function gaussian() {
+      var N = 10;
+      var sum = 0;
+      for (var i = 0; i < N; ++i) {
+        sum += Math.random()-0.5;
+      }
+      return sum * Math.sqrt(12/N);
+    }
+    </script>
+
+    <style>
+    .non-survivor {
+      fill: red;
+    }
+    .survivor {
+      fill: blue;
+    }
+    </style>
+  </head>
+  <body style="text-align: center" onload="init()">
+    <svg viewBox="0 0 500 500" style="width: 500px" id="visualization">
+      <circle cx="250" cy="250" r="5" fill="none" stroke="black" />
+      <g fill="none" stroke="black">
+        <circle cx="250" cy="250" r="75" />
+        <circle cx="250" cy="250" r="150" />
+        <circle cx="250" cy="250" r="225" />
+      </g>
+      <g id="entity-views">
+      </g>
+    </svg>
+  </body>
+</html>
