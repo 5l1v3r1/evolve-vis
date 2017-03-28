@@ -8,8 +8,10 @@
     var NUM_ENTITIES = 50;
     var SURVIVAL = 0.8;
     var MUTATION = 30;
-    var DELAY = 200;
+    var FRAME_RATE = 3;
     var entities = [];
+    var interval = null;
+    var nextCallback = null;
 
     function init() {
       // TODO: try with centered random init.
@@ -18,7 +20,20 @@
         var y = 100 + gaussian()*50;
         entities.push(createEntity(x, y));
       }
-      setTimeout(showWorst, DELAY);
+      nextCallback = showWorst;
+    }
+
+    function toggleTimer(e) {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+        e.target.textContent = 'Start';
+      } else {
+        interval = setInterval(function() {
+          nextCallback();
+        }, 1000/FRAME_RATE);
+        e.target.textContent = 'Stop';
+      }
     }
 
     function showWorst() {
@@ -29,7 +44,7 @@
       for (var i = numKeep; i < entities.length; ++i) {
         entities[i].elem.setAttribute('class', 'non-survivor');
       }
-      setTimeout(pruneWorst, DELAY);
+      nextCallback = pruneWorst;
     }
 
     function pruneWorst() {
@@ -42,7 +57,7 @@
         --i;
         ent.elem.parentNode.removeChild(ent.elem);
       }
-      setTimeout(reproduce, DELAY);
+      nextCallback = reproduce;
     }
 
     function reproduce() {
@@ -56,7 +71,7 @@
         var parent2 = select();
         entities.push(createEntity(mutate(parent1.x), mutate(parent2.y)));
       }
-      setTimeout(showWorst, DELAY);
+      nextCallback = showWorst;
     }
 
     function fitness(entity) {
@@ -106,6 +121,9 @@
     </style>
   </head>
   <body style="text-align: center" onload="init()">
+    <button onClick="toggleTimer(event)">Start</button>
+    <button onClick="nextCallback()">Step</button>
+    <br>
     <svg viewBox="0 0 500 500" style="width: 500px" id="visualization">
       <circle cx="250" cy="250" r="5" fill="none" stroke="black" />
       <g fill="none" stroke="black">
