@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Evolutionary Strategies Hill Climbing</title>
+
+    <script>
+    var NUM_ENTITIES = 50;
+    var MUTATION = 30;
+    var FRAME_RATE = 3;
+    var STEP_SIZE = 0.0005;
+    var entities = [];
+    var interval = null;
+    var nextCallback = null;
+
+    function init() {
+      entities = [createEntity(100, 100)];
+      nextCallback = fanOut;
+    }
+
+    function toggleTimer(e) {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+        e.target.textContent = 'Start';
+      } else {
+        interval = setInterval(function() {
+          nextCallback();
+        }, 1000/FRAME_RATE);
+        e.target.textContent = 'Stop';
+      }
+    }
+
+    function fanOut() {
+      var parent = entities[0];
+      while (entities.length < NUM_ENTITIES) {
+        entities.push(createEntity(mutate(parent.x), mutate(parent.y)));
+      }
+      nextCallback = fanIn;
+    }
+
+    function fanIn() {
+      var x = 0;
+      var y = 0;
+      var origin = entities[0];
+      for (var i = 0; i < entities.length; ++i) {
+        var entity = entities[i];
+        var f = fitness(entity);
+        x += (entity.x-origin.x) * f;
+        y += (entity.y-origin.y) * f;
+        entity.elem.parentNode.removeChild(entity.elem);
+      }
+      entities = [createEntity(origin.x+x*STEP_SIZE, origin.y+y*STEP_SIZE)];
+      nextCallback = fanOut;
+    }
+
+    function fitness(entity) {
+      var dist = Math.pow(entity.x-250, 2) + Math.pow(entity.y-250, 2);
+
+      // In this case, fitness will always be negative.
+      // This is fine for truncation selection.
+      return -Math.sqrt(dist);
+    }
+
+    function mutate(x) {
+      return x + gaussian()*MUTATION;
+    }
+
+    function createEntity(x, y) {
+      var elem = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      elem.setAttribute('cx', x);
+      elem.setAttribute('cy', y);
+      elem.setAttribute('r', 5);
+      elem.setAttribute('class', 'survivor');
+
+      var entity = {x: x, y: y, elem: elem};
+
+      var parent = document.getElementById('entity-views');
+      parent.appendChild(entity.elem);
+
+      return entity;
+    }
+
+    function gaussian() {
+      var N = 10;
+      var sum = 0;
+      for (var i = 0; i < N; ++i) {
+        sum += Math.random()-0.5;
+      }
+      return sum * Math.sqrt(12/N);
+    }
+    </script>
+
+    <style>
+    .non-survivor {
+      fill: red;
+    }
+    .survivor {
+      fill: blue;
+    }
+    </style>
+  </head>
+  <body style="text-align: center" onload="init()">
+    <button onClick="toggleTimer(event)">Start</button>
+    <button onClick="nextCallback()">Step</button>
+    <br>
+    <svg viewBox="0 0 500 500" style="width: 500px" id="visualization">
+      <circle cx="250" cy="250" r="5" fill="none" stroke="black" />
+      <g fill="none" stroke="black">
+        <circle cx="250" cy="250" r="75" />
+        <circle cx="250" cy="250" r="150" />
+        <circle cx="250" cy="250" r="225" />
+      </g>
+      <g id="entity-views">
+      </g>
+    </svg>
+  </body>
+</html>
